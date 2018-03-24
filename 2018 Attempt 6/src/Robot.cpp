@@ -1,15 +1,15 @@
 //#include <Encoder.h> Can't use encoder :(
+
 #include <iostream>
+#include <Joystick.h>
 #include <memory>
 #include <string>
-#include <Joystick.h>
 #include <SampleRobot.h>
 #include <SmartDashboard/SendableChooser.h>
 #include <SmartDashboard/SmartDashboard.h>
 #include <RobotDrive.h>
 #include <Timer.h>
 #include <VictorSP.h>
-#include <GenericHID.h>
 
 using namespace std;
 
@@ -29,14 +29,7 @@ using namespace std;
  * be much more difficult under this system. Use IterativeRobot or Command-Based
  * instead if you're new.
  */
-
-/*Notes
-	 * Xbox controller scheme for this project/intended purpose
- 	 	 *Left stick to run the mecanum_drive
- 	 	 *Right trigger to run the intake backwards
- 	 	 *Right bumper to run the intake forwardss
- 	 	 *Left trigger to run the spitter backwards
- 	 	 *Hold left bumper to limit input
+/*
  	 * Key for prefixes
  	 * l = left
  	 * r = right/rear
@@ -47,25 +40,6 @@ using namespace std;
  	 	 * lr = left rear
  	 * For VictorSP parameters (#s)
  	 	 * port numbers on roborio PWM
- 	 * For GetRawAxis parameters (#s)
- 	 	 *Corresponds to numbers in driver station
- 	 	 *0:  Left X-axis
- 	 	 *1:  Left Y-axis
- 	 	 *2:  Left Trigger
- 	 	 *3:  Right Trigger
- 	 	 *4:  Right X-Axis
- 	 	 *5:  Right Y-Axis
- 	 *For GetRawButton parameters (#s)
- 	 	 *1: A
- 	 	 *2: B
- 	 	 *3: X
- 	 	 *4: Y
- 	 	 *5: Left Bumper
- 	 	 *6: Right Bumper
- 	 	 *7: Back
- 	 	 *8: Start
- 	 	 *9: Left stick press
- 	 	 *10: Right stick press
  	 *Also, if you need to find the documentation to find out what each function does/ what parameters it takes go to the bottom link
  	 * http://first.wpi.edu/FRC/roborio/release/docs/cpp/index.html
  	 * Added bookmark for link on Firefox (Other bookmarks -> WPILibC++ Main Page)
@@ -85,53 +59,77 @@ using namespace std;
  	 	 *In general, don't be afraid to ask for help. Go to Chief Delphi and ask on forums if needed
 		*/
 class Robot: public frc::SampleRobot {
+private:
+	enum Hand
+	{
+		LEFT,
+		RIGHT
+	};
+	enum Axis
+	{
+		X_AXIS,
+		Y_AXIS,
+		TRIGGER
+	};
+	enum Button
+	{
+		A=1,
+		B,
+		X,
+		Y,
+		LEFT_BUMPER,
+		RIGHT_BUMPER,
+		BACK,
+		START,
+		LEFT_STICK_PRESS,
+		RIGHT_STICK_PRESS
+	};
+
+	enum DriveTrainSide
+	{
+		LEFT,
+		RIGHT
+	};
 	Joystick *controller;
-	// For controller. Its port number, along with the motors' ports numbers, are located in Robot()
-	/*XboxController * controller2;*/
 	SendableChooser<string> chooser;
 	const string autoNameDefault = "Default";
 	const string autoNameCustom = "My Auto";
-	VictorSP *lf_motor, *rf_motor, *lr_motor, *rr_motor, *arm_motor, *r_intake_motor, *l_intake_motor;/*, *gear_a;*/
+	VictorSP *leftFrontMotor, *rightFrontMotor, *leftRearMotor, *rightRearMotor, *arm_motor, *r_intake_motor, *l_intake_motor;/*, *gear_a;*/
 	/*Spark *gear_b;*/
 	//To declare motor array and other motors on the robot
 	RobotDrive *myRobot;
-	// robot drive system
-	/*Encoder *myEncoder;*/
+	bool inversionState = false;
+		void Test() override {
+
+		}
+		/*
+		 * Runs during test mode
+		 */
+
 public:
+	void setAllInverted(bool flag)
+	{
+		leftFrontMotor->SetInverted(flag);
+		leftRearMotor->SetInverted(flag);
+		rightFrontMotor->SetInverted(flag);
+		rightRearMotor->SetInverted(flag);
+	}
 	Robot() {
 		//Note SmartDashboard is not initialized here, wait until RobotInit to make SmartDashboard calls
-		lf_motor = new VictorSP(0);
-		lf_motor->SetInverted(true);
-		//parameters are the ports for the motors
-		rf_motor = new VictorSP(1);
-		rf_motor -> SetInverted(false);
-		//Inverting motors is part of the testing process. Right motors were set inverted after testing
-		rr_motor = new VictorSP(2);
-		rr_motor -> SetInverted(false);
-		lr_motor = new VictorSP(3);
-		lr_motor->SetInverted(true);
-		arm_motor = new VictorSP(4);
-		arm_motor ->SetInverted(true);//You welcome ;~)
-		r_intake_motor = new VictorSP(5);
-		l_intake_motor = new VictorSP(6);
-		/*gear_a = new VictorSP(6);
-		gear_b = new Spark(7);*/
-		myRobot = new RobotDrive(lf_motor,lr_motor,rf_motor,rr_motor);
+		leftFrontMotor = new VictorSP(3);
+		leftFrontMotor->SetInverted(inversionState);
+		leftRearMotor = new VictorSP(2);
+		leftRearMotor->SetInverted(inversionState);
+
+		rightFrontMotor = new VictorSP(0);
+		rightFrontMotor -> SetInverted(inversionState);
+		rightRearMotor = new VictorSP(1);
+		rightRearMotor -> SetInverted(inversionState);
+
+		myRobot = new RobotDrive( leftFrontMotor,leftRearMotor,rightFrontMotor,rightRearMotor );
 		myRobot->SetExpiration(0.1);
-		arm_motor->SetExpiration(0.1);
-		//Safety reasons I think
-		r_intake_motor->SetExpiration(0.1);
-		l_intake_motor->SetExpiration(0.1);
-		/*gear_a-> SetExpiration(0.1);
-		gear_b-> SetExpiration(0.1);*/
+
 		controller = new Joystick(0);
-		float dead_band (float);
-		/*dead_band Function is for mechanical reasons. The xbox controller joystick doesn't settle at 0.0 (for mechanical reasons). It can settle at something too.
-		so, if the joystick is set at 0.0-0.2 /-0.2-0.0, the joystick value is set at 0. Otherwise, it returns normally.*/
-		/*to make sure the input is not greater than the limit (the whole premise of the drive_limiter is to make sure the input is less than it)
-		drive_limiter works in the while loop and is increased 10% (max=100%) every 0.5 second when there is driver input. Otherwise, idle state gets set to default*/
-		/*myEncoder = new Encoder(0, 1, false);
-		controller2= new XboxController(0);*/
 	}
 
 	void RobotInit() {
@@ -139,8 +137,6 @@ public:
 		chooser.AddObject(autoNameCustom, autoNameCustom);
 		frc::SmartDashboard::PutData("Auto Modes", &chooser);
 		frc::SmartDashboard::PutNumber("RPM", 0);
-		/* TODO: Factor in gearing reductions following the encoder shaft. NVM...
-		myEncoder->SetDistancePerPulse((TIRE_DIAMETER*PI)/PULSES_PER_REVOLUTION);*/
 	}
 
 
@@ -165,8 +161,8 @@ public:
 			// Custom Auto goes here
 			cout << "Running custom Autonomous" << std::endl;
 			myRobot->SetSafetyEnabled(false);
-			myRobot->TankDrive(0.6, 0.6);
-			frc::Wait(2.5);                // runs for 1/2 a second
+			myRobot->TankDrive(0.60, 0.60);
+			frc::Wait(4.5);                // runs for 1/2 a second
 			myRobot->TankDrive(0.0, 0.0);  // stops robot after waiting
 //		}
 //		else
@@ -182,23 +178,84 @@ public:
 //			 */
 //		}
 	}
+	float deadBand(float joystickValue)
+	{
+		if(std::fabs(joystickValue) > 0.2f)
+						{
+							return joystickValue;
+						}
+						else
+						{
+							return 0.0f;
+						}
+	}
 
+	bool getButton(Button button)
+	{
+		return controller->GetRawButton(static_cast<int>(button));
+	}
 
+	double getAxis(Hand hand, Axis axis)
+	{
+		switch(hand)
+		{
+			case LEFT:
+				switch(axis)
+				{
+					case X_AXIS:
+						return deadBand(controller->GetRawAxis(0));
+					break;
 
+					case Y_AXIS:
+						return deadBand(controller->GetRawAxis(1));
+					break;
+
+					case TRIGGER:
+						return deadBand(controller->GetRawAxis(2));
+					break;
+				}
+			break;
+
+			case RIGHT:
+				switch(axis)
+				{
+					case TRIGGER:
+						return deadBand(controller->GetRawAxis(3));
+					break;
+
+					case X_AXIS:
+						return deadBand(controller->GetRawAxis(4));
+					break;
+
+					case Y_AXIS:
+						return deadBand(controller->GetRawAxis(5));
+					break;
+				}
+			break;
+		}
+	}
+
+	bool setInversion(DriveTrainSide side, bool flag )
+	{
+		switch(side)
+		{
+			case LEFT:
+				leftFrontMotor->SetInverted(flag);
+				leftRearMotor->SetInverted(flag);
+			break;
+				rightFrontMotor->SetInverted(flag);
+				rightRearMotor->SetInverted(flag);
+		}
+	}
 	void OperatorControl() override {
-
-		double time_counter = 0;
-		double drive_limiter = 0.80;
 		double lftbump_limiter = 1.0;
 
 		myRobot->SetSafetyEnabled(true);
 		while (IsOperatorControl() && IsEnabled()) {
 
 
-				//when idle (hence the and), the limiter should be put back to its normal state.
-
 				//A-button
-				if (controller->GetRawButton(5)==1)
+				if (getButton(A))
 				{
 					lftbump_limiter = 0.75;
 				}
@@ -208,68 +265,27 @@ public:
 					lftbump_limiter = 1.0;
 				}
 
-				myRobot->TankDrive
-				(
-						dead_band(controller->GetRawAxis(1))*lftbump_limiter,
-						dead_band(controller->GetRawAxis(5))*lftbump_limiter
-				);
+				if(getAxis(LEFT, Y_AXIS) == 0)
+				{
+					if(getAxis(RIGHT, X_AXIS) > 0)
+					{
+						setInversion(RIGHT, true);
+					}
+					else if (getAxis(RIGHT, X_AXIS) < 0)
+					{
 
-				// - is to flip the front side of the robot when driving.
-				/*myRobot->MecanumDrive_Cartesian(.5*-limit_input(dead_band(controller->GetRawAxis(0)), drive_limiter)*lftbump_limiter,
-						.5*-limit_input(dead_band(controller->GetRawAxis(1)),drive_limiter)*lftbump_limiter,
-						.5*limit_input(dead_band(controller->GetRawAxis(4)),drive_limiter)*lftbump_limiter);*/
-				//
-				//frc::SmartDashboard::PutNumber("RPM", myEncoder->GetRate());
-				/*
-				if (controller->GetRawButton(5))
-				{
-					r_intake_motor->Set(1);
-					l_intake_motor->Set(1);
+					}
+					myRobot->TankDrive( getAxis(RIGHT, X_AXIS), getAxis(RIGHT, Y_AXIS))
 				}
-				else if(controller->GetRawButton(6))
+				else if(getAxis(RIGHT, X_AXIS) == 0)
 				{
-					r_intake_motor->Set(-1);
-					l_intake_motor->Set(-1);
+					myRobot->TankDrive( getAxis(LEFT, Y_AXIS), getAxis(LEFT, Y_AXIS));
 				}
-				//left trigger
-				if (dead_band(controller->GetRawAxis(2))>0.3)
-				{
-					arm_motor -> Set(-controller->GetRawAxis(2)*lftbump_limiter);
-				}
-				//right trigger
-				else if (controller->GetRawButton(5))
-				{
-					arm_motor -> Set(controller->GetRawAxis(2)*lftbump_limiter);
-				}
-				else
-				{
-					arm_motor->Set(0);
-					//So when they stop pressing the trigger, the motor stops
-				}
-				*/
 				frc::Wait(0.005);
 				//wait for a motor update time, so not all of the CPU of the computer is used. (Motors can be computer hogs)
 				}
 		}
 
-private:
-		float dead_band(float joystick)
-		{
-			if(fabs(joystick) > 0.2f)
-			{
-				return joystick;
-			}
-			else
-			{
-				return 0.0f;
-			}
-		}
 
-		void Test() override {
-
-		}
-		/*
-		 * Runs during test mode
-		 */
 	};
 START_ROBOT_CLASS(Robot)

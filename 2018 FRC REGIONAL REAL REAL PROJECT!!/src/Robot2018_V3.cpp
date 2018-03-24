@@ -100,18 +100,18 @@ class Robot: public frc::SampleRobot {
 public:
 	Robot() {
 		//Note SmartDashboard is not initialized here, wait until RobotInit to make SmartDashboard calls
-		lf_motor = new VictorSP(0);
-		lf_motor->SetInverted(true);
+		lf_motor = new VictorSP(3);
+		lf_motor->SetInverted(false);
 		//parameters are the ports for the motors
-		rf_motor = new VictorSP(1);
+		rf_motor = new VictorSP(0);
 		rf_motor -> SetInverted(false);
 		//Inverting motors is part of the testing process. Right motors were set inverted after testing
-		rr_motor = new VictorSP(2);
-		rr_motor -> SetInverted(false);
-		lr_motor = new VictorSP(3);
+		rr_motor = new VictorSP(1);
+		rr_motor -> SetInverted(true);
+		lr_motor = new VictorSP(2);
 		lr_motor->SetInverted(true);
 		arm_motor = new VictorSP(4);
-		arm_motor ->SetInverted(true);//You welcome ;~)
+		arm_motor ->SetInverted(true);
 		r_intake_motor = new VictorSP(5);
 		l_intake_motor = new VictorSP(6);
 		/*gear_a = new VictorSP(6);
@@ -186,16 +186,11 @@ public:
 
 
 	void OperatorControl() override {
-
-		double time_counter = 0;
-		double drive_limiter = 0.80;
 		double lftbump_limiter = 1.0;
 
 		myRobot->SetSafetyEnabled(true);
 		while (IsOperatorControl() && IsEnabled()) {
 
-
-				//when idle (hence the and), the limiter should be put back to its normal state.
 
 				//A-button
 				if (controller->GetRawButton(5)==1)

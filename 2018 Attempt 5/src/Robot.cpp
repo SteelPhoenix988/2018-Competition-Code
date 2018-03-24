@@ -1,15 +1,14 @@
 //#include <Encoder.h> Can't use encoder :(
 #include <iostream>
+#include <Joystick.h>
 #include <memory>
 #include <string>
-#include <Joystick.h>
 #include <SampleRobot.h>
 #include <SmartDashboard/SendableChooser.h>
 #include <SmartDashboard/SmartDashboard.h>
 #include <RobotDrive.h>
 #include <Timer.h>
 #include <VictorSP.h>
-#include <GenericHID.h>
 
 using namespace std;
 
@@ -85,8 +84,8 @@ using namespace std;
  	 	 *In general, don't be afraid to ask for help. Go to Chief Delphi and ask on forums if needed
 		*/
 class Robot: public frc::SampleRobot {
-	Joystick *controller;
 	// For controller. Its port number, along with the motors' ports numbers, are located in Robot()
+	Joystick *controller;
 	/*XboxController * controller2;*/
 	SendableChooser<string> chooser;
 	const string autoNameDefault = "Default";
@@ -99,19 +98,20 @@ class Robot: public frc::SampleRobot {
 	/*Encoder *myEncoder;*/
 public:
 	Robot() {
+		controller = new Joystick(0);
 		//Note SmartDashboard is not initialized here, wait until RobotInit to make SmartDashboard calls
-		lf_motor = new VictorSP(0);
-		lf_motor->SetInverted(true);
+		lf_motor = new VictorSP(3);
+		lf_motor->SetInverted(false);
 		//parameters are the ports for the motors
-		rf_motor = new VictorSP(1);
+		rf_motor = new VictorSP(0);
 		rf_motor -> SetInverted(false);
 		//Inverting motors is part of the testing process. Right motors were set inverted after testing
-		rr_motor = new VictorSP(2);
+		rr_motor = new VictorSP(1);
 		rr_motor -> SetInverted(false);
-		lr_motor = new VictorSP(3);
-		lr_motor->SetInverted(true);
+		lr_motor = new VictorSP(2);
+		lr_motor->SetInverted(false);
 		arm_motor = new VictorSP(4);
-		arm_motor ->SetInverted(true);//You welcome ;~)
+		arm_motor ->SetInverted(true);
 		r_intake_motor = new VictorSP(5);
 		l_intake_motor = new VictorSP(6);
 		/*gear_a = new VictorSP(6);
@@ -124,14 +124,9 @@ public:
 		l_intake_motor->SetExpiration(0.1);
 		/*gear_a-> SetExpiration(0.1);
 		gear_b-> SetExpiration(0.1);*/
-		controller = new Joystick(0);
 		float dead_band (float);
 		/*dead_band Function is for mechanical reasons. The xbox controller joystick doesn't settle at 0.0 (for mechanical reasons). It can settle at something too.
 		so, if the joystick is set at 0.0-0.2 /-0.2-0.0, the joystick value is set at 0. Otherwise, it returns normally.*/
-		/*to make sure the input is not greater than the limit (the whole premise of the drive_limiter is to make sure the input is less than it)
-		drive_limiter works in the while loop and is increased 10% (max=100%) every 0.5 second when there is driver input. Otherwise, idle state gets set to default*/
-		/*myEncoder = new Encoder(0, 1, false);
-		controller2= new XboxController(0);*/
 	}
 
 	void RobotInit() {
@@ -139,8 +134,6 @@ public:
 		chooser.AddObject(autoNameCustom, autoNameCustom);
 		frc::SmartDashboard::PutData("Auto Modes", &chooser);
 		frc::SmartDashboard::PutNumber("RPM", 0);
-		/* TODO: Factor in gearing reductions following the encoder shaft. NVM...
-		myEncoder->SetDistancePerPulse((TIRE_DIAMETER*PI)/PULSES_PER_REVOLUTION);*/
 	}
 
 
@@ -165,8 +158,8 @@ public:
 			// Custom Auto goes here
 			cout << "Running custom Autonomous" << std::endl;
 			myRobot->SetSafetyEnabled(false);
-			myRobot->TankDrive(0.6, 0.6);
-			frc::Wait(2.5);                // runs for 1/2 a second
+			myRobot->TankDrive(0.60, 0.60);
+			frc::Wait(4.5);                // runs for 1/2 a second
 			myRobot->TankDrive(0.0, 0.0);  // stops robot after waiting
 //		}
 //		else
@@ -186,16 +179,11 @@ public:
 
 
 	void OperatorControl() override {
-
-		double time_counter = 0;
-		double drive_limiter = 0.80;
 		double lftbump_limiter = 1.0;
 
 		myRobot->SetSafetyEnabled(true);
 		while (IsOperatorControl() && IsEnabled()) {
 
-
-				//when idle (hence the and), the limiter should be put back to its normal state.
 
 				//A-button
 				if (controller->GetRawButton(5)==1)
@@ -253,17 +241,6 @@ public:
 		}
 
 private:
-		float dead_band(float joystick)
-		{
-			if(fabs(joystick) > 0.2f)
-			{
-				return joystick;
-			}
-			else
-			{
-				return 0.0f;
-			}
-		}
 
 		void Test() override {
 
